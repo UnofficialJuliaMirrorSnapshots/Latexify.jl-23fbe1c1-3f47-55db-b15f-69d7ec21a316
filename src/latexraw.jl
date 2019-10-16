@@ -73,12 +73,15 @@ function latexraw(inputex::Expr; convert_unicode=true, kwargs...)
     ex = deepcopy(inputex)
     str = recurseexp!(ex)
     convert_unicode && (str = unicode2latex(str))
-    LaTeXString(str)
+    return LaTeXString(str)
 end
 
 
+function latexraw(args...; kwargs...) 
+    @assert length(args) > 1 "latexify does not support objects of type $(typeof(args[1]))."
+    latexraw(args; kwargs...)
+end
 latexraw(arr::Union{AbstractArray, Tuple}; kwargs...) = [latexraw(i; kwargs...) for i in arr]
-latexraw(args...; kwargs...) = latexraw(args; kwargs...)
 latexraw(i::Nothing; kwargs...) = ""
 latexraw(i::SubString; kwargs...) = latexraw(Meta.parse(i); kwargs...)
 latexraw(i::SubString{LaTeXStrings.LaTeXString}; kwargs...) = i
@@ -87,12 +90,9 @@ latexraw(z::Complex; kwargs...) = LaTeXString("$(z.re)$(z.im < 0 ? "" : "+" )$(z
 #latexraw(i::DataFrames.DataArrays.NAtype) = "\\textrm{NA}"
 latexraw(str::LaTeXStrings.LaTeXString; kwargs...) = str
 
-function latexraw(i::Number; fmt="", kwargs...)
-    if fmt == ""
-        return string(i)
-    else
-        return @eval @sprintf($fmt, $i)
-    end
+function latexraw(i::Number; fmt=PlainNumberFormatter(), kwargs...)
+    fmt isa String && (fmt = PrintfNumberFormatter(fmt))
+    return fmt(i)
 end
 
 function latexraw(i::Char; convert_unicode=true, kwargs...)
